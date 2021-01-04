@@ -1,3 +1,5 @@
+const dataUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson";
+
 // Create a map object
 var myMap = L.map("map", {
     center: [15.5994, -28.6731],
@@ -14,87 +16,60 @@ var myMap = L.map("map", {
     accessToken: API_KEY
   }).addTo(myMap);
 
-  // Add data
-var dummyData = [
-    {
-        name: "Brazil",
-        location: [-14.2350, -51.9253],
-        points: 227
-      },
-      {
-        name: "Germany",
-        location: [51.1657, 10.4515],
-        points: 218
-      },
-      {
-        name: "Italy",
-        location: [41.8719, 12.5675],
-        points: 156
-      },
-      {
-        name: "Argentina",
-        location: [-38.4161, -63.6167],
-        points: 140
-      },
-      {
-        name: "Spain",
-        location: [40.4637, -3.7492],
-        points: 99
-      },
-      {
-        name: "England",
-        location: [52.355, 1.1743],
-        points: 98
-      },
-      {
-        name: "France",
-        location: [46.2276, 2.2137],
-        points: 96
-      },
-      {
-        name: "Netherlands",
-        location: [52.1326, 5.2913],
-        points: 93
-      },
-      {
-        name: "Uruguay",
-        location: [-32.4228, -55.7658],
-        points: 72
-      },
-      {
-        name: "Sweden",
-        location: [60.1282, 18.6435],
-        points: 61
-      }
-    ];
-
-
-// Loop through the data array
-dummyData.forEach(country => {
-    // Add circles to map
-    L.circle(country.location, {
+  // Loop through the real data array
+d3.json(dataUrl, function(data) {
+  // console.log(data);
+  data.features.forEach(function(element, i) {
+    // console.log('Element', i, 'is', element);
+    let quakeId = element.id;
+    let location = [element.geometry.coordinates[1], element.geometry.coordinates[0]];
+    let depth = element.geometry.coordinates[2];
+    let magnitude = element.properties.mag;
+    let place = element.properties.place;
+    let time = new Date(element.properties.time);
+      // Add circles to map
+    L.circle(location, {
         fillOpacity: 0.75,
         color: "white",
-        fillColor: whatColorShouldIBe(country.points),
+        fillColor: getColor(depth),
         // Adjust radius
-        radius: country.points * 1500
-    }).bindPopup(setMyText(country)).addTo(myMap);
-  });
-  function setMyText(country = {}) {
-    var text;
-    text = `<h1>  ${country.name} </h1> <hr> <h3>Points: ${country.points} </h3><h4>made with function</h4>`;
-    return text;
-  }
-  function whatColorShouldIBe(points = 0) {
-    var color = "";
-    if (points > 200) {
-        color = "yellow";
-    } else if (points > 100) {
-        color = "blue";
-    } else if (points > 90) {
-        color = "green";
-    } else {
-        color = "red";
+        radius: magnitude * 30000
+    }).bindPopup(setMyText()).addTo(myMap);
+
+    function setMyText() {
+      var text = {};
+      text = `<h1>  ${place} </h1> <hr> 
+        <h3>ID: ${quakeId} </h3>
+        <h3>Time: ${time} </h3>
+        <h3>Magnitude: ${magnitude} </h3>
+        <h3>Depth: ${depth} </h3>
+        <h4>made with function</h4>`;
+      return text;
     }
-    return color;
-  }
+  });
+  // Build legend
+  var legend = L.control({ position: "bottomright" });
+  legend.onAdd = function(myMap) {
+    var div = L.DomUtil.create("div", "info legend"),
+        grades = [-10, 10, 30, 50, 70, 90],
+        labels = [];
+        for (var i = 0; i < grades.length; i++) {
+          div.innerHTML +=
+              '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+              grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+    return div;
+  };
+  // Adding legend to the map
+  legend.addTo(myMap);
+});
+
+function getColor(depth = 0) {
+  return depth > 90 ? 'red' :
+          depth > 70 ? 'darkorange' :
+          depth > 50 ? 'orange' :
+          depth > 30 ? 'yellow' :
+          depth > 20 ? 'light green':
+          depth > 10 ? 'green':
+                        'darkgreen';
+}
