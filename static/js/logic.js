@@ -69,7 +69,7 @@ function getColor(depth = 0) {
           depth > 70 ? 'darkorange' :
           depth > 50 ? 'orange' :
           depth > 30 ? 'yellow' :
-          depth > 20 ? 'light green':
+          depth > 20 ? 'lightgreen':
           depth > 10 ? 'green':
                         'darkgreen';
 }
